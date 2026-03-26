@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Manager — Full SaaS App</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        :root{--bg:#0a0a0b;--card:#141417;--input:#1a1a1f;--border:#2a2a32;--focus:#4f7df9;--t1:#eaeaf0;--t2:#8b8b9e;--t3:#5a5a6e;--accent:#4f7df9;--accent2:#3d6ae0;--green:#34d399;--red:#f87171;--orange:#fbbf24;--purple:#a78bfa;--r:10px}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+        .auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+        .auth-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:36px;width:100%;max-width:400px}
+        .auth-logo{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),#8b5cf6);border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 18px}
+        .auth-card h1{text-align:center;font-size:1.3rem;font-weight:700;margin-bottom:4px}
+        .auth-card .sub{text-align:center;color:var(--t3);font-size:.82rem;margin-bottom:24px}
+        .a-field{margin-bottom:14px}
+        .a-field label{display:block;font-size:.72rem;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;font-family:'Space Mono',monospace;margin-bottom:5px}
+        .a-field input{width:100%;padding:11px 14px;background:var(--input);border:1px solid var(--border);border-radius:8px;color:var(--t1);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none}
+        .a-field input:focus{border-color:var(--focus)}
+        .a-btn{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;margin-top:6px}
+        .a-btn:hover{background:var(--accent2)}
+        .a-btn:disabled{opacity:.5;cursor:not-allowed}
+        .a-toggle{text-align:center;margin-top:18px;font-size:.82rem;color:var(--t2)}
+        .a-toggle a{color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none}
+        .a-msg{padding:10px 14px;border-radius:8px;font-size:.8rem;margin-bottom:14px;display:none}
+        .a-msg.err{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);color:var(--red)}
+        .a-msg.ok{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);color:var(--green)}
+        .app{display:none}
+        .hdr{border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between}
+        .hdr-l{display:flex;align-items:center;gap:12px}
+        .hdr-ico{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),#8b5cf6);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px}
+        .hdr h1{font-size:1.05rem;font-weight:600}
+        .hdr-sub{font-size:.72rem;color:var(--t3);font-family:'Space Mono',monospace}
+        .hdr-r{display:flex;align-items:center;gap:10px}
+        .plan-badge{font-size:.68rem;font-family:'Space Mono',monospace;padding:4px 10px;border-radius:50px}
+        .plan-free{color:var(--orange);background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.15)}
+        .plan-pro{color:var(--green);background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.15)}
+        .u-email{font-size:.72rem;color:var(--t2);font-family:'Space Mono',monospace;background:var(--input);padding:5px 10px;border-radius:6px;border:1px solid var(--border)}
+        .btn-out{padding:6px 14px;background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.78rem;cursor:pointer}
+        .btn-out:hover{border-color:var(--red);color:var(--red)}
+        .ctn{max-width:960px;margin:0 auto;padding:24px 20px}
+
+        /* Zoho Connection Card */
+        .zoho-card{background:linear-gradient(135deg,#0f1a2e,#141428);border:1px solid #2a2a52;border-radius:var(--r);padding:22px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between}
+        .zoho-card-left{display:flex;align-items:center;gap:14px}
+        .zoho-icon{width:42px;height:42px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+        .zoho-title{font-size:.9rem;font-weight:600}
+        .zoho-desc{font-size:.75rem;color:var(--t3)}
+        .btn-zoho{padding:9px 20px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;border:none}
+        .btn-zoho-connect{background:var(--purple);color:#fff}
+        .btn-zoho-connect:hover{background:#9370f0}
+        .btn-zoho-connected{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.2);cursor:default}
+        .btn-zoho-fetch{padding:9px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;margin-left:8px}
+        .btn-zoho-fetch:hover{background:var(--accent2)}
+        .btn-zoho-fetch:disabled{opacity:.5;cursor:not-allowed}
+
+        /* Zoho Customers Table */
+        .zoho-section{background:var(--card);border:1px solid #2a2a52;border-radius:var(--r);overflow:hidden;margin-bottom:22px;display:none}
+        .zoho-section-hdr{padding:15px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(167,139,250,.03)}
+        .zoho-section-hdr h2{font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:8px}
+        .zoho-section-hdr h2 span{color:var(--purple)}
+        .zoho-badge{font-size:.65rem;color:var(--purple);font-family:'Space Mono',monospace;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.15);padding:3px 8px;border-radius:50px}
+
+        .stats{display:flex;gap:14px;margin-bottom:22px}
+        .st{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:15px 16px}
+        .st-l{font-size:.68rem;color:var(--t3);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace;margin-bottom:3px}
+        .st-v{font-size:1.3rem;font-weight:700}
+        .limit-warn{font-size:.68rem;color:var(--orange);font-family:'Space Mono',monospace;margin-top:2px}
+        .pricing-banner{background:linear-gradient(135deg,#1a1a3e,#141430);border:1px solid #2a2a52;border-radius:var(--r);padding:24px;margin-bottom:24px;display:none}
+        .pricing-banner h2{font-size:1rem;font-weight:700;margin-bottom:6px}
+        .pricing-banner .pb-sub{font-size:.82rem;color:var(--t2);margin-bottom:18px}
+        .plans{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        .plan-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+        .plan-card.highlight{border-color:var(--accent);background:rgba(79,125,249,.05)}
+        .plan-name{font-size:.9rem;font-weight:700;margin-bottom:4px}
+        .plan-price{font-size:1.6rem;font-weight:700;margin-bottom:2px}
+        .plan-price span{font-size:.8rem;font-weight:400;color:var(--t2)}
+        .plan-feat{font-size:.78rem;color:var(--t2);line-height:1.7;margin:10px 0 14px}
+        .plan-feat div::before{content:'✓ ';color:var(--green)}
+        .btn-plan{width:100%;padding:10px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;border:none}
+        .btn-current{background:var(--input);color:var(--t2);cursor:default}
+        .btn-upgrade{background:var(--accent);color:#fff}
+        .btn-upgrade:hover{background:var(--accent2)}
+
+        .fm{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:22px}
+        .fm-t{font-size:.82rem;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+        .fm-t span{color:var(--accent)}
+        .fm-r{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
+        .fg label{display:block;font-size:.68rem;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;font-family:'Space Mono',monospace;margin-bottom:4px}
+        .fg input{width:100%;padding:9px 12px;background:var(--input);border:1px solid var(--border);border-radius:7px;color:var(--t1);font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none}
+        .fg input:focus{border-color:var(--focus)}
+        .fg input::placeholder{color:var(--t3)}
+        .btn-add{padding:9px 22px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap}
+        .btn-add:hover{background:var(--accent2)}
+        .btn-add:disabled{opacity:.5;cursor:not-allowed}
+        .tbl{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+        .tbl-h{padding:15px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+        .tbl-h h2{font-size:.82rem;font-weight:600}
+        .tbl-c{font-size:.7rem;color:var(--t3);font-family:'Space Mono',monospace}
+        table{width:100%;border-collapse:collapse}
+        thead th{padding:10px 20px;font-size:.68rem;color:var(--t3);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace;font-weight:400;text-align:left;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015)}
+        tbody tr:hover{background:rgba(255,255,255,.02)}
+        tbody td{padding:12px 20px;font-size:.85rem;border-bottom:1px solid rgba(255,255,255,.03)}
+        .td-id{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--t3)}
+        .td-n{font-weight:600}
+        .td-co{color:var(--t2)}
+        .td-ph{font-family:'Space Mono',monospace;font-size:.8rem;color:var(--t2)}
+        .td-d{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--t3)}
+        .btn-del{padding:4px 10px;background:transparent;border:1px solid rgba(248,113,113,.2);color:var(--red);border-radius:5px;font-size:.7rem;font-family:'Space Mono',monospace;cursor:pointer}
+        .btn-del:hover{background:rgba(248,113,113,.1);border-color:var(--red)}
+        .empty{text-align:center;padding:45px 20px;color:var(--t3)}
+        .empty-i{font-size:2rem;margin-bottom:8px;opacity:.5}
+        .empty p{font-size:.82rem}
+        .loading{text-align:center;padding:32px;color:var(--t3);font-family:'Space Mono',monospace;font-size:.78rem}
+        .toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:9px;font-size:.82rem;font-weight:500;transform:translateY(100px);opacity:0;transition:all .3s;z-index:100}
+        .toast.show{transform:translateY(0);opacity:1}
+        .toast.success{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);color:var(--green)}
+        .toast.error{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);color:var(--red)}
+        .ftr{text-align:center;padding:24px;font-size:.7rem;color:var(--t3);font-family:'Space Mono',monospace}
+        @media(max-width:700px){.fm-r,.plans{grid-template-columns:1fr}.stats{flex-direction:column}.hdr{flex-direction:column;gap:10px;padding:14px}.hdr-r{flex-wrap:wrap;justify-content:center}.zoho-card{flex-direction:column;gap:14px;text-align:center}}
+    </style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div class="auth-screen" id="authScreen">
+    <div class="auth-card">
+        <div class="auth-logo">📋</div>
+        <h1 id="aTitle">Welcome Back</h1>
+        <p class="sub" id="aSub">Sign in to manage your customers</p>
+        <div class="a-msg err" id="aErr"></div>
+        <div class="a-msg ok" id="aOk"></div>
+        <div class="a-field"><label>Email</label><input type="email" id="aEmail" placeholder="you@company.com"></div>
+        <div class="a-field"><label>Password</label><input type="password" id="aPass" placeholder="Min 6 characters"></div>
+        <button class="a-btn" id="aBtn" onclick="handleAuth()">Sign In</button>
+        <div class="a-toggle"><span id="aTxt">Don't have an account?</span> <a id="aLink" onclick="toggleAuth()">Sign Up</a></div>
+    </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+    <div class="hdr">
+        <div class="hdr-l">
+            <div class="hdr-ico">📋</div>
+            <div><h1>Customer Manager</h1><div class="hdr-sub">your private workspace</div></div>
+        </div>
+        <div class="hdr-r">
+            <span class="plan-badge plan-free" id="planBadge">FREE PLAN</span>
+            <span class="u-email" id="uEmail"></span>
+            <button class="btn-out" onclick="logout()">Logout</button>
+        </div>
+    </div>
+    <div class="ctn">
+
+        <!-- Zoho Connection -->
+        <div class="zoho-card" id="zohoCard">
+            <div class="zoho-card-left">
+                <div class="zoho-icon">📚</div>
+                <div>
+                    <div class="zoho-title" id="zohoTitle">Connect Zoho Books</div>
+                    <div class="zoho-desc" id="zohoDesc">Link your Zoho Books account to fetch customers</div>
+                </div>
+            </div>
+            <div>
+                <button class="btn-zoho btn-zoho-connect" id="btnZohoConnect" onclick="connectZoho()">Connect Zoho</button>
+                <button class="btn-zoho-fetch" id="btnZohoFetch" onclick="fetchZohoCustomers()" style="display:none">Fetch Customers</button>
+            </div>
+        </div>
+
+        <!-- Zoho Customers Section -->
+        <div class="zoho-section" id="zohoSection">
+            <div class="zoho-section-hdr">
+                <h2><span>📚</span> Zoho Books Customers</h2>
+                <span class="zoho-badge" id="zohoCount">0 contacts</span>
+            </div>
+            <div id="zohoBody"><div class="loading">Fetching from Zoho Books...</div></div>
+        </div>
+
+        <!-- Pricing -->
+        <div class="pricing-banner" id="pricingBanner">
+            <h2>Upgrade Your Plan</h2>
+            <p class="pb-sub">Free plan limited to 5 customers. Upgrade for unlimited.</p>
+            <div class="plans">
+                <div class="plan-card"><div class="plan-name">Free</div><div class="plan-price">₹0<span>/forever</span></div><div class="plan-feat"><div>Up to 5 customers</div><div>Basic features</div></div><button class="btn-plan btn-current">Current Plan</button></div>
+                <div class="plan-card highlight"><div class="plan-name" style="color:var(--accent)">Pro</div><div class="plan-price">₹999<span>/month</span></div><div class="plan-feat"><div>Unlimited customers</div><div>Zoho integration</div><div>Priority support</div></div><button class="btn-plan btn-upgrade" onclick="startPayment()">Upgrade Now</button></div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="st"><div class="st-l">Your Customers</div><div class="st-v" id="totalCount">—</div><div class="limit-warn" id="limitWarn" style="display:none"></div></div>
+            <div class="st"><div class="st-l">Added Today</div><div class="st-v" id="todayCount">—</div></div>
+            <div class="st"><div class="st-l">Plan</div><div class="st-v" id="planDisplay" style="font-size:.82rem;color:var(--green)">Loading...</div></div>
+        </div>
+
+        <!-- Add Form -->
+        <div class="fm">
+            <div class="fm-t"><span>+</span> Add New Customer</div>
+            <div class="fm-r">
+                <div class="fg"><label>Name</label><input type="text" id="iName" placeholder="e.g. Arjun Traders"></div>
+                <div class="fg"><label>Company</label><input type="text" id="iComp" placeholder="e.g. Arjun Enterprises"></div>
+                <div class="fg"><label>Phone</label><input type="text" id="iPhone" placeholder="e.g. 9876543210"></div>
+                <button class="btn-add" id="btnAdd" onclick="addCustomer()">Add</button>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="tbl">
+            <div class="tbl-h"><h2>Your Customers</h2><span class="tbl-c" id="tblCount"></span></div>
+            <div id="tblBody"><div class="loading">Loading...</div></div>
+        </div>
+        <div class="ftr">Built by Shankar with Claude AI · Supabase + Vercel + Razorpay + Zoho Books</div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPA_URL='https://nandhhoixhptgcxjrrsq.supabase.co';
+var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hbmRoaG9peGhwdGdjeGpycnNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MDI0MDIsImV4cCI6MjA5MDA3ODQwMn0.LvlChJgkMkEjW0azDub-JluZgsILFWRR1hWMF1Lxu48';
+var RZP_KEY='rzp_test_SVnFy0Di3WlLGt';
+
+var db=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+var user=null;var userPlan='free';var customerCount=0;var FREE_LIMIT=5;var isSignUp=false;var zohoConnected=false;
+
+// ═══ AUTH ═══
+function toggleAuth(){
+    isSignUp=!isSignUp;hide('aErr');hide('aOk');
+    if(isSignUp){el('aTitle').textContent='Create Account';el('aSub').textContent='Sign up to start managing customers';el('aBtn').textContent='Sign Up';el('aTxt').textContent='Already have an account?';el('aLink').textContent='Sign In';}
+    else{el('aTitle').textContent='Welcome Back';el('aSub').textContent='Sign in to manage your customers';el('aBtn').textContent='Sign In';el('aTxt').textContent="Don't have an account?";el('aLink').textContent='Sign Up';}
+}
+function handleAuth(){
+    var email=el('aEmail').value.trim();var pass=el('aPass').value;hide('aErr');hide('aOk');
+    if(!email||!pass){showMsg('aErr','Enter email and password');return;}
+    if(pass.length<6){showMsg('aErr','Password min 6 chars');return;}
+    var btn=el('aBtn');btn.disabled=true;btn.textContent=isSignUp?'Creating...':'Signing in...';
+    var p=isSignUp?db.auth.signUp({email:email,password:pass}):db.auth.signInWithPassword({email:email,password:pass});
+    p.then(function(r){
+        btn.disabled=false;btn.textContent=isSignUp?'Sign Up':'Sign In';
+        if(r.error){showMsg('aErr',r.error.message);return;}
+        if(isSignUp&&r.data.user&&!r.data.session){showMsg('aOk','Account created! Check email to confirm.');return;}
+        if(r.data.session){user=r.data.user;openApp();}
+    });
+}
+function logout(){db.auth.signOut().then(function(){user=null;el('authScreen').style.display='flex';el('app').style.display='none';el('aEmail').value='';el('aPass').value='';hide('aErr');hide('aOk');});}
+function openApp(){
+    el('authScreen').style.display='none';el('app').style.display='block';el('uEmail').textContent=user.email;
+    checkPlan();checkZohoConnection();loadCustomers();
+    // Check URL for Zoho callback result
+    var params=new URLSearchParams(window.location.search);
+    if(params.get('zoho_connected')==='true'){showToast('🎉 Zoho Books connected!','success');window.history.replaceState({},'','/');checkZohoConnection();}
+    if(params.get('zoho_error')){showToast('Zoho error: '+params.get('zoho_error'),'error');window.history.replaceState({},'','/');}
+}
+
+// ═══ PLAN ═══
+function checkPlan(){
+    db.from('Subscriptions').select('*').order('paid_at',{ascending:false}).limit(1).then(function(r){
+        if(r.data&&r.data.length>0&&r.data[0].plan==='pro'){setPlan('pro');}else{setPlan('free');}
+    });
+}
+function setPlan(plan){
+    userPlan=plan;
+    if(plan==='pro'){el('planBadge').textContent='PRO PLAN';el('planBadge').className='plan-badge plan-pro';el('planDisplay').textContent='Pro ✓';el('planDisplay').style.color='var(--green)';el('pricingBanner').style.display='none';}
+    else{el('planBadge').textContent='FREE PLAN';el('planBadge').className='plan-badge plan-free';el('planDisplay').textContent='Free';el('planDisplay').style.color='var(--orange)';el('pricingBanner').style.display='block';}
+    updateLimitUI();
+}
+function updateLimitUI(){
+    if(userPlan==='free'){
+        if(customerCount>=FREE_LIMIT){el('limitWarn').style.display='block';el('limitWarn').textContent=customerCount+'/'+FREE_LIMIT+' limit reached';el('btnAdd').disabled=true;}
+        else{el('limitWarn').style.display='block';el('limitWarn').textContent=customerCount+'/'+FREE_LIMIT+' used';el('btnAdd').disabled=false;}
+    }else{el('limitWarn').style.display='none';el('btnAdd').disabled=false;}
+}
+function startPayment(){
+    var o={key:RZP_KEY,amount:99900,currency:'INR',name:'Customer Manager',description:'Pro Plan',handler:function(r){saveSubscription(r.razorpay_payment_id);},prefill:{email:user.email},theme:{color:'#4f7df9'}};
+    new Razorpay(o).open();
+}
+function saveSubscription(pid){
+    db.from('Subscriptions').insert([{user_id:user.id,plan:'pro',razorpay_payment_id:pid,amount:999}]).then(function(r){
+        if(r.error){showToast('Error: '+r.error.message,'error');}else{showToast('🎉 Welcome to Pro!','success');setPlan('pro');}
+    });
+}
+
+// ═══ ZOHO CONNECTION ═══
+function checkZohoConnection(){
+    db.from('ZohoTokens').select('*').then(function(r){
+        if(r.data&&r.data.length>0){
+            zohoConnected=true;
+            el('zohoTitle').textContent='Zoho Books Connected';
+            el('zohoDesc').textContent='Organization: '+r.data[0].organization_id;
+            el('btnZohoConnect').textContent='✓ Connected';
+            el('btnZohoConnect').className='btn-zoho btn-zoho-connected';
+            el('btnZohoConnect').onclick=null;
+            el('btnZohoFetch').style.display='inline-block';
+        }
+    });
+}
+function connectZoho(){
+    // Get the user's current session token
+    db.auth.getSession().then(function(r){
+        if(r.data.session){
+            var token=r.data.session.access_token;
+            // Redirect to our serverless function which will redirect to Zoho
+            window.location.href='/api/zoho-auth?token='+encodeURIComponent(token);
+        }else{
+            showToast('Please log in first','error');
+        }
+    });
+}
+function fetchZohoCustomers(){
+    var btn=el('btnZohoFetch');
+    btn.disabled=true;btn.textContent='Fetching...';
+    el('zohoSection').style.display='block';
+    el('zohoBody').innerHTML='<div class="loading">Fetching customers from Zoho Books...</div>';
+
+    db.auth.getSession().then(function(r){
+        if(!r.data.session){showToast('Session expired','error');return;}
+        var token=r.data.session.access_token;
+
+        fetch('/api/zoho-customers',{
+            headers:{'Authorization':'Bearer '+token}
+        })
+        .then(function(resp){return resp.json();})
+        .then(function(data){
+            btn.disabled=false;btn.textContent='Fetch Customers';
+            console.log('Zoho customers data:',data);
+
+            if(data.error){
+                el('zohoBody').innerHTML='<div class="empty"><div class="empty-i">⚠️</div><p>'+data.error+'</p></div>';
+                return;
+            }
+
+            var customers=data.customers||[];
+            el('zohoCount').textContent=customers.length+' contacts';
+
+            if(customers.length===0){
+                el('zohoBody').innerHTML='<div class="empty"><div class="empty-i">📭</div><p>No customers found in Zoho Books</p></div>';
+                return;
+            }
+
+            var h='<table><thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Balance</th></tr></thead><tbody>';
+            for(var i=0;i<customers.length;i++){
+                var c=customers[i];
+                h+='<tr>';
+                h+='<td class="td-n">'+esc(c.contact_name||'—')+'</td>';
+                h+='<td class="td-co">'+esc(c.company_name||'—')+'</td>';
+                h+='<td class="td-d">'+esc(c.email||'—')+'</td>';
+                h+='<td class="td-ph">'+esc(c.phone||'—')+'</td>';
+                h+='<td style="font-family:Space Mono,monospace;font-size:.78rem">₹'+Number(c.outstanding_receivable_amount||0).toLocaleString('en-IN')+'</td>';
+                h+='</tr>';
+            }
+            h+='</tbody></table>';
+            el('zohoBody').innerHTML=h;
+            showToast('✓ '+customers.length+' customers loaded from Zoho Books','success');
+        })
+        .catch(function(err){
+            btn.disabled=false;btn.textContent='Fetch Customers';
+            el('zohoBody').innerHTML='<div class="empty"><div class="empty-i">⚠️</div><p>Error: '+err.message+'</p></div>';
+        });
+    });
+}
+
+// ═══ CUSTOMERS ═══
+function loadCustomers(){
+    db.from('Customers').select('*').order('created_at',{ascending:false}).then(function(r){
+        if(r.error){el('tblBody').innerHTML='<div class="empty"><div class="empty-i">⚠️</div><p>Error: '+r.error.message+'</p></div>';return;}
+        var data=r.data;customerCount=data.length;
+        el('totalCount').textContent=data.length;
+        var today=new Date().toDateString();var tc=0;
+        for(var i=0;i<data.length;i++){if(new Date(data[i].created_at).toDateString()===today)tc++;}
+        el('todayCount').textContent=tc;el('tblCount').textContent=data.length+' records';updateLimitUI();
+        if(data.length===0){el('tblBody').innerHTML='<div class="empty"><div class="empty-i">📭</div><p>No customers yet. Add one above!</p></div>';return;}
+        var h='<table><thead><tr><th>ID</th><th>Name</th><th>Company</th><th>Phone</th><th>Added</th><th></th></tr></thead><tbody>';
+        for(var j=0;j<data.length;j++){var c=data[j];var d=new Date(c.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+        h+='<tr><td class="td-id">#'+c.id+'</td><td class="td-n">'+esc(c.name||'—')+'</td><td class="td-co">'+esc(c.company||'—')+'</td><td class="td-ph">'+esc(c.phone||'—')+'</td><td class="td-d">'+d+'</td><td><button class="btn-del" onclick="delCustomer('+c.id+')">delete</button></td></tr>';}
+        h+='</tbody></table>';el('tblBody').innerHTML=h;
+    });
+}
+function addCustomer(){
+    var name=el('iName').value.trim();var comp=el('iComp').value.trim();var phone=el('iPhone').value.trim();
+    if(!name){showToast('Enter a name','error');return;}
+    if(userPlan==='free'&&customerCount>=FREE_LIMIT){showToast('Limit reached. Upgrade!','error');return;}
+    var btn=el('btnAdd');btn.disabled=true;btn.textContent='Adding...';
+    db.from('Customers').insert([{name:name,company:comp,phone:phone,user_id:user.id}]).then(function(r){
+        if(r.error){showToast('Error: '+r.error.message,'error');}else{el('iName').value='';el('iComp').value='';el('iPhone').value='';showToast('✓ '+name+' added!','success');loadCustomers();}
+        btn.disabled=false;btn.textContent='Add';
+    });
+}
+function delCustomer(id){if(!confirm('Delete?'))return;db.from('Customers').delete().eq('id',id).then(function(r){if(r.error)showToast('Error: '+r.error.message,'error');else{showToast('Deleted','success');loadCustomers();}});}
+
+// ═══ UTILS ═══
+function el(id){return document.getElementById(id);}
+function esc(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+function hide(id){el(id).style.display='none';}
+function showMsg(id,m){var e=el(id);e.textContent=m;e.style.display='block';}
+function showToast(m,t){var toast=el('toast');toast.textContent=m;toast.className='toast '+t+' show';setTimeout(function(){toast.className='toast';},3500);}
+document.addEventListener('keydown',function(e){if(e.key==='Enter'){var a=document.activeElement.id;if(a==='aEmail'||a==='aPass')handleAuth();else if(a==='iName'||a==='iComp'||a==='iPhone')addCustomer();}});
+
+// ═══ INIT ═══
+db.auth.getSession().then(function(r){if(r.data.session){user=r.data.session.user;openApp();}});
+</script>
+</body>
+</html>
